@@ -1,23 +1,19 @@
-import { Stack } from "expo-router";
+import { Tabs } from "expo-router";
 
 export default function IndexLayout() {
   return (
-    <Stack>
-      <Stack.Screen
+    <Tabs>
+      <Tabs.Screen
         name="index"
         options={{ title: "Shopping List" }}
-      ></Stack.Screen>
-      <Stack.Screen
+      ></Tabs.Screen>
+      <Tabs.Screen
         name="counter"
         options={{
           title: "Counter",
-          presentation: "modal",
         }}
-      ></Stack.Screen>
-      <Stack.Screen
-        name="idea"
-        options={{ title: "Idea", presentation: "modal" }}
-      ></Stack.Screen>
-    </Stack>
+      ></Tabs.Screen>
+      <Tabs.Screen name="idea" options={{ title: "Idea" }}></Tabs.Screen>
+    </Tabs>
   );
 }
