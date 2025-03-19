@@ -1,8 +1,10 @@
 import { StyleSheet, FlatList, TextInput, Text, View } from "react-native";
 import { ShoppingListItem } from "../components/ShoppingListItem";
 import { themes } from "../themes";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getFromStorage, saveToStorage } from "../utils/storage";
 
+const storageKey = "shopping-list";
 type ShoppingListItemType = {
   id: string;
   name: string;
@@ -13,6 +15,18 @@ type ShoppingListItemType = {
 export default function App() {
   const [value, setValue] = useState<string>("");
   const [shoppingList, setShoppingList] = useState<ShoppingListItemType[]>([]);
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      const data = await getFromStorage(storageKey);
+
+      if (data) {
+        setShoppingList(data);
+      }
+    };
+
+    fetchInitialData();
+  }, []);
 
   const handleSubmit = () => {
     const newShoppingList = [
@@ -25,6 +39,7 @@ export default function App() {
     ];
 
     setShoppingList(newShoppingList);
+    saveToStorage(storageKey, newShoppingList);
     setValue("");
   };
 
@@ -32,6 +47,7 @@ export default function App() {
     const newShoppingList = shoppingList.filter((item) => item.id !== id);
 
     setShoppingList(newShoppingList);
+    saveToStorage(storageKey, newShoppingList);
   };
 
   const handleToggleComplete = (id: string) => {
@@ -48,10 +64,11 @@ export default function App() {
     );
 
     setShoppingList(newShoppingList);
+    saveToStorage(storageKey, newShoppingList);
   };
 
   const orderShoppingList = (
-    shoppingList: ShoppingListItemType[],
+    shoppingList: ShoppingListItemType[]
   ): ShoppingListItemType[] => {
     return shoppingList.sort((item1, item2): number => {
       if (item1.completedAtTimestamp && item2.completedAtTimestamp) {
