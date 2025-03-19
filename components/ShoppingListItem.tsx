@@ -1,4 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Pressable,
+} from "react-native";
 import { themes } from "../themes";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
@@ -7,9 +14,15 @@ type Props = {
   name: string;
   isCompleted?: boolean;
   onDelete: () => void;
+  onToggleComplete: () => void;
 };
 
-export function ShoppingListItem({ name, isCompleted, onDelete }: Props) {
+export function ShoppingListItem({
+  name,
+  isCompleted,
+  onDelete,
+  onToggleComplete,
+}: Props) {
   const handleDelete = () => {
     Alert.alert(
       `Are you sure you want to delete ${name}?`,
@@ -35,7 +48,7 @@ export function ShoppingListItem({ name, isCompleted, onDelete }: Props) {
         isCompleted ? styles.completedItemContainer : undefined,
       ]}
     >
-      <View style={styles.row}>
+      <Pressable style={styles.row} onPress={() => onToggleComplete()}>
         <Entypo
           name={isCompleted ? "check" : "circle"}
           size={24}
@@ -49,7 +62,7 @@ export function ShoppingListItem({ name, isCompleted, onDelete }: Props) {
         >
           {name}
         </Text>
-      </View>
+      </Pressable>
       <TouchableOpacity
         onPress={() => {
           handleDelete();

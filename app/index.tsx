@@ -6,6 +6,8 @@ import { useState } from "react";
 type ShoppingListItemType = {
   id: string;
   name: string;
+  completedAtTimestamp?: number;
+  lastUpdatedTimestamp: number;
 };
 
 export default function App() {
@@ -14,7 +16,11 @@ export default function App() {
 
   const handleSubmit = () => {
     const newShoppingList = [
-      { id: new Date().toTimeString(), name: value },
+      {
+        id: new Date().toTimeString(),
+        name: value,
+        lastUpdatedTimestamp: Date.now(),
+      },
       ...shoppingList,
     ];
 
@@ -28,9 +34,43 @@ export default function App() {
     setShoppingList(newShoppingList);
   };
 
+  const handleToggleComplete = (id: string) => {
+    const newShoppingList = shoppingList.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            completedAtTimestamp: item.completedAtTimestamp
+              ? undefined
+              : Date.now(),
+            lastUpdatedTimestamp: Date.now(),
+          }
+        : item
+    );
+
+    setShoppingList(newShoppingList);
+  };
+
+  const orderShoppingList = (
+    shoppingList: ShoppingListItemType[],
+  ): ShoppingListItemType[] => {
+    return shoppingList.sort((item1, item2): number => {
+      if (item1.completedAtTimestamp && item2.completedAtTimestamp) {
+        return item2.completedAtTimestamp - item1.completedAtTimestamp;
+      } else if (item1.completedAtTimestamp && !item2.completedAtTimestamp) {
+        return 1;
+      } else if (!item1.completedAtTimestamp && item2.completedAtTimestamp) {
+        return -1;
+      } else if (!item1.completedAtTimestamp && !item2.completedAtTimestamp) {
+        return item2.lastUpdatedTimestamp - item1.lastUpdatedTimestamp;
+      }
+
+      return 1;
+    });
+  };
+
   return (
     <FlatList
-      data={shoppingList}
+      data={orderShoppingList(shoppingList)}
       style={styles.container}
       stickyHeaderIndices={[0]}
       contentContainerStyle={styles.contentContainer}
@@ -53,6 +93,8 @@ export default function App() {
         <ShoppingListItem
           name={item.name}
           onDelete={() => handleDelete(item.id)}
+          onToggleComplete={() => handleToggleComplete(item.id)}
+          isCompleted={Boolean(item.completedAtTimestamp)}
         />
       )}
     />
