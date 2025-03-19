@@ -1,8 +1,16 @@
-import { StyleSheet, FlatList, TextInput, Text, View, LayoutAnimation } from "react-native";
+import {
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Text,
+  View,
+  LayoutAnimation,
+} from "react-native";
 import { ShoppingListItem } from "../components/ShoppingListItem";
 import { themes } from "../themes";
 import { useEffect, useState } from "react";
 import { getFromStorage, saveToStorage } from "../utils/storage";
+import * as Haptics from "expo-haptics";
 
 const storageKey = "shopping-list";
 type ShoppingListItemType = {
@@ -49,22 +57,29 @@ export default function App() {
     const newShoppingList = shoppingList.filter((item) => item.id !== id);
 
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShoppingList(newShoppingList);
     saveToStorage(storageKey, newShoppingList);
   };
 
   const handleToggleComplete = (id: string) => {
-    const newShoppingList = shoppingList.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            completedAtTimestamp: item.completedAtTimestamp
-              ? undefined
-              : Date.now(),
-            lastUpdatedTimestamp: Date.now(),
-          }
-        : item
-    );
+    const newShoppingList = shoppingList.map((item) => {
+      if (item.id === id) {
+        if (item.completedAtTimestamp) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } else {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        return {
+          ...item,
+          completedAtTimestamp: item.completedAtTimestamp
+            ? undefined
+            : Date.now(),
+          lastUpdatedTimestamp: Date.now(),
+        };
+      }
+      return item;
+    });
 
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setShoppingList(newShoppingList);
@@ -72,7 +87,7 @@ export default function App() {
   };
 
   const orderShoppingList = (
-    shoppingList: ShoppingListItemType[]
+    shoppingList: ShoppingListItemType[],
   ): ShoppingListItemType[] => {
     return shoppingList.sort((item1, item2): number => {
       if (item1.completedAtTimestamp && item2.completedAtTimestamp) {
