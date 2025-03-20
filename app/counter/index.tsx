@@ -1,4 +1,11 @@
-import { Text, View, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import {
+  Text,
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { registerForPushNotificationAsync } from "../../utils/registerForPushNotificationAsync";
 import { themes } from "../../themes";
 import * as Device from "expo-device";
@@ -6,7 +13,6 @@ import * as Notifications from "expo-notifications";
 import { useEffect, useState } from "react";
 import { Duration, intervalToDuration, isBefore } from "date-fns";
 import { TimeSegment } from "../../components/TimeSegment";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getFromStorage, saveToStorage } from "../../utils/storage";
 
 // 10 seconds from now
@@ -31,6 +37,8 @@ export default function CounterScreen() {
     isOverdue: false,
     distance: {},
   });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isFetching, setIsFetching] = useState<boolean>(true);
 
   const lastCompletedTimestamp = countDownState?.completedAtTimestamps[0];
 
@@ -39,6 +47,7 @@ export default function CounterScreen() {
       const countDownState = await getFromStorage(countDownStorageKey);
 
       setCountDownState(countDownState);
+      setIsFetching(false);
     };
 
     init();
@@ -48,7 +57,10 @@ export default function CounterScreen() {
     const intervalId = setInterval(() => {
       const timeStamp = lastCompletedTimestamp
         ? lastCompletedTimestamp + frequency
-        : Date.now();
+        : Date.now() + 1;
+
+      setIsLoading(false);
+
       const isOverdue = isBefore(timeStamp, Date.now());
       const distance = intervalToDuration(
         isOverdue
@@ -68,7 +80,6 @@ export default function CounterScreen() {
   }, [lastCompletedTimestamp]);
 
   const scheduleNotification = async () => {
-    console.log('called');
     let pushNotificationId;
     const status = await registerForPushNotificationAsync();
 
@@ -85,14 +96,14 @@ export default function CounterScreen() {
       if (Device.isDevice) {
         Alert.alert(
           "Notification are not enabled for this app.",
-          "Enable the notifications from the settings.",
+          "Enable the notifications from the settings."
         );
       }
     }
 
     if (countDownState?.currentNotificationId) {
       await Notifications.cancelScheduledNotificationAsync(
-        countDownState?.currentNotificationId,
+        countDownState?.currentNotificationId
       );
     }
 
@@ -107,6 +118,16 @@ export default function CounterScreen() {
 
     setCountDownState(newCountDownState);
   };
+
+  {
+    if (isLoading || isFetching) {
+      return (
+        <View style={styles.activityIndicator}>
+          <ActivityIndicator />
+        </View>
+      );
+    }
+  }
 
   return (
     <View
@@ -187,5 +208,11 @@ const styles = StyleSheet.create({
   },
   whiteText: {
     color: themes.colorWhite,
+  },
+  activityIndicator: {
+    backgroundColor: themes.colorWhite,
+    justifyContent: "center",
+    alignItems: "center",
+    flex: 1,
   },
 });
