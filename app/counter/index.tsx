@@ -6,9 +6,18 @@ import * as Notifications from "expo-notifications";
 import { useEffect, useState } from "react";
 import { Duration, intervalToDuration, isBefore } from "date-fns";
 import { TimeSegment } from "../../components/TimeSegment";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getFromStorage, saveToStorage } from "../../utils/storage";
 
 // 10 seconds from now
-const timeStamp = Date.now() + 10 * 1000;
+const frequency = 10 * 1000;
+
+const countDownStorageKey = "tasklyCountDown";
+
+type PersistedCountDownStatus = {
+  currentNotificationId: string | undefined;
+  completedAtTimestamps: number[];
+};
 
 type CountDownStatus = {
   isOverdue: boolean;
@@ -16,13 +25,30 @@ type CountDownStatus = {
 };
 
 export default function CounterScreen() {
+  const [countDownState, setCountDownState] =
+    useState<PersistedCountDownStatus>();
   const [status, setStatus] = useState<CountDownStatus>({
     isOverdue: false,
     distance: {},
   });
 
+  const lastCompletedTimestamp = countDownState?.completedAtTimestamps[0];
+
+  useEffect(() => {
+    const init = async () => {
+      const countDownState = await getFromStorage(countDownStorageKey);
+
+      setCountDownState(countDownState);
+    };
+
+    init();
+  }, []);
+
   useEffect(() => {
     const intervalId = setInterval(() => {
+      const timeStamp = lastCompletedTimestamp
+        ? lastCompletedTimestamp + frequency
+        : Date.now();
       const isOverdue = isBefore(timeStamp, Date.now());
       const distance = intervalToDuration(
         isOverdue
@@ -39,28 +65,47 @@ export default function CounterScreen() {
     return () => {
       clearInterval(intervalId);
     };
-  });
+  }, [lastCompletedTimestamp]);
 
   const scheduleNotification = async () => {
+    console.log('called');
+    let pushNotificationId;
     const status = await registerForPushNotificationAsync();
 
     if (status === "granted") {
-      await Notifications.scheduleNotificationAsync({
+      pushNotificationId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: "I'm a notification from your app! 📨",
+          title: "This thing is due. 📨",
         },
         trigger: {
-          seconds: 5,
+          seconds: frequency / 1000,
         },
       });
     } else {
       if (Device.isDevice) {
         Alert.alert(
           "Notification are not enabled for this app.",
-          "Enable the notifications from the settings."
+          "Enable the notifications from the settings.",
         );
       }
     }
+
+    if (countDownState?.currentNotificationId) {
+      await Notifications.cancelScheduledNotificationAsync(
+        countDownState?.currentNotificationId,
+      );
+    }
+
+    const newCountDownState: PersistedCountDownStatus = {
+      currentNotificationId: pushNotificationId,
+      completedAtTimestamps: countDownState
+        ? [Date.now(), ...countDownState.completedAtTimestamps]
+        : [Date.now()],
+    };
+
+    await saveToStorage(countDownStorageKey, newCountDownState);
+
+    setCountDownState(newCountDownState);
   };
 
   return (
